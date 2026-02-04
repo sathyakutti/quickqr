@@ -1,65 +1,202 @@
-import Image from "next/image";
+import { QrCode, Zap, Shield, CreditCard, Globe, Smartphone, Download } from "lucide-react";
+import { SITE_NAME, SITE_DESCRIPTION, FREE_DAILY_DOWNLOAD_LIMIT } from "@/lib/constants";
+import { QR_CATEGORIES } from "@/lib/qr/categories";
+import { QRGenerator } from "@/components/qr/qr-generator";
+import Link from "next/link";
 
-export default function Home() {
+const FEATURES = [
+  {
+    icon: Zap,
+    title: "Instant Generation",
+    description: "QR codes generate in real-time as you type. No waiting, no page reloads.",
+  },
+  {
+    icon: Shield,
+    title: "No Signup Required",
+    description: `Generate and download up to ${FREE_DAILY_DOWNLOAD_LIMIT} QR codes per day without creating an account.`,
+  },
+  {
+    icon: CreditCard,
+    title: "Payment QR Codes",
+    description: "Support for UPI, SEPA, Pix, Bitcoin, Ethereum, and PayPal payment formats.",
+  },
+  {
+    icon: Globe,
+    title: "International Formats",
+    description: "vCard, MeCard, iCal events, geo locations, and WiFi sharing — all standards-compliant.",
+  },
+  {
+    icon: Smartphone,
+    title: "Works Everywhere",
+    description: "Generated QR codes are scannable by any modern smartphone camera or QR reader app.",
+  },
+  {
+    icon: Download,
+    title: "High Quality Downloads",
+    description: "Download as PNG for free. Premium users get SVG, PDF, and sizes up to 2000px.",
+  },
+] as const;
+
+export default function HomePage() {
+  const totalTypes = QR_CATEGORIES.reduce(
+    (sum, cat) => sum + cat.types.length,
+    0
+  );
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <>
+      {/* Hero Section */}
+      <section className="border-b border-border bg-muted/30">
+        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-1.5 text-sm text-muted-foreground">
+              <QrCode className="size-4" aria-hidden="true" />
+              <span>{totalTypes} QR code types across {QR_CATEGORIES.length} categories</span>
+            </div>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+              Free QR Code Generator
+            </h1>
+            <p className="mt-4 text-lg text-muted-foreground sm:text-xl">
+              {SITE_DESCRIPTION}
+            </p>
+          </div>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+      </section>
+
+      {/* QR Generator Section */}
+      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8" aria-label="QR code generator">
+        <QRGenerator />
+      </section>
+
+      {/* Features Section */}
+      <section
+        className="border-t border-border bg-muted/30"
+        aria-labelledby="features-heading"
+      >
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <h2
+            id="features-heading"
+            className="mb-10 text-center text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+            Why {SITE_NAME}?
+          </h2>
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {FEATURES.map((feature) => {
+              const Icon = feature.icon;
+              return (
+                <div
+                  key={feature.title}
+                  className="rounded-lg border border-border bg-card p-6"
+                >
+                  <Icon className="mb-3 size-6 text-muted-foreground" aria-hidden="true" />
+                  <h3 className="mb-1 text-base font-semibold text-foreground">
+                    {feature.title}
+                  </h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    {feature.description}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </main>
-    </div>
+      </section>
+
+      {/* Category Overview Section */}
+      <section
+        className="border-t border-border"
+        aria-labelledby="types-heading"
+      >
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <h2
+            id="types-heading"
+            className="mb-10 text-center text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
+          >
+            {totalTypes} QR Code Types
+          </h2>
+          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {QR_CATEGORIES.map((category) => {
+              const CategoryIcon = category.icon;
+              return (
+                <div key={category.id}>
+                  <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
+                    <CategoryIcon className="size-4" aria-hidden="true" />
+                    {category.label}
+                  </h3>
+                  <ul className="space-y-1.5">
+                    {category.types.map((type) => {
+                      const TypeIcon = type.icon;
+                      return (
+                        <li key={type.id}>
+                          <Link
+                            href={`/${type.id}`}
+                            className="group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm"
+                          >
+                            <TypeIcon className="size-4 text-muted-foreground group-hover:text-accent-foreground" aria-hidden="true" />
+                            <span>{type.label}</span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="border-t border-border bg-muted/30">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+          <div className="mx-auto max-w-2xl text-center">
+            <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
+              Need more from your QR codes?
+            </h2>
+            <p className="mt-3 text-muted-foreground">
+              Upgrade to premium for custom colors, logo embedding, high-resolution downloads, and no watermark.
+            </p>
+            <Link
+              href="/pricing"
+              className="mt-6 inline-flex items-center justify-center rounded-md bg-primary px-6 py-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+            >
+              View Pricing
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* JSON-LD Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: SITE_NAME,
+            description: SITE_DESCRIPTION,
+            applicationCategory: "UtilityApplication",
+            operatingSystem: "Any",
+            offers: {
+              "@type": "Offer",
+              price: "0",
+              priceCurrency: "USD",
+            },
+            featureList: [
+              "URL QR codes",
+              "WiFi QR codes",
+              "vCard QR codes",
+              "UPI payment QR codes",
+              "SEPA/EPC QR codes",
+              "Pix payment QR codes",
+              "Bitcoin QR codes",
+              "Ethereum QR codes",
+              "Calendar event QR codes",
+              "Geo location QR codes",
+            ],
+          }),
+        }}
+      />
+    </>
   );
 }
