@@ -162,8 +162,8 @@ export function QRGenerator({ defaultCategory, defaultType }: QRGeneratorProps) 
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-8">
-      <div className="flex flex-col gap-6">
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8 overflow-hidden">
+      <div className="flex flex-col gap-6 min-w-0">
         <CategoryTabs
           selectedCategory={selectedCategory}
           onCategoryChange={handleCategoryChange}
@@ -188,7 +188,7 @@ export function QRGenerator({ defaultCategory, defaultType }: QRGeneratorProps) 
           onChange={handleCustomizationChange}
         />
       </div>
-      <div className="lg:sticky lg:top-24 flex flex-col gap-0 self-start">
+      <div className="lg:sticky lg:top-24 flex flex-col gap-0 self-start min-w-0">
         <QRPreview
           data={qrString}
           fgColor={customization.fgColor}

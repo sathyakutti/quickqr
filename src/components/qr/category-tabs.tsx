@@ -27,9 +27,9 @@ export function CategoryTabs({
       onValueChange={handleValueChange}
       className="w-full"
     >
-      <div className="overflow-x-auto -mx-1 px-1 scrollbar-thin">
+      <div className="overflow-x-auto -mx-1 px-1 scrollbar-thin max-w-full">
         <TabsList
-          className="inline-flex w-full min-w-max"
+          className="inline-flex min-w-max"
           aria-label="QR code categories"
         >
           {QR_CATEGORIES.map((category) => {

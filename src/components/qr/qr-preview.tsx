@@ -108,13 +108,12 @@ export function QRPreview({
             ref={containerRef}
             aria-label="Generated QR code preview"
             role="img"
-            style={{ width: size, height: size }}
+            className="w-full max-w-[300px] aspect-square [&>canvas]:!w-full [&>canvas]:!h-full [&>svg]:!w-full [&>svg]:!h-full"
           />
         ) : (
           <div
             ref={containerRef}
-            className="flex items-center justify-center text-muted-foreground text-sm"
-            style={{ width: size, height: size }}
+            className="flex items-center justify-center text-muted-foreground text-sm w-full max-w-[300px] aspect-square"
             aria-label="QR code preview placeholder"
             role="img"
           >
