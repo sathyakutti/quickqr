@@ -4,12 +4,9 @@
   "name": "quickqr",
   "compatibility_date": "2026-01-16",
   "compatibility_flags": ["nodejs_compat"],
+  "workers_dev": true,
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS"
-  },
-  "routes": [
-    { "pattern": "quickqrcode.app", "custom_domain": true },
-    { "pattern": "www.quickqrcode.app", "custom_domain": true }
-  ]
+  }
 }
