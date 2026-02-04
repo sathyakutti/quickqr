@@ -5,9 +5,12 @@ import { Card, CardContent } from "@/components/ui/card";
 import type QRCodeStyling from "qr-code-styling";
 import type { DotType, CornerDotType, CornerSquareType, Options } from "qr-code-styling";
 
+const FREE_BRANDING_IMAGE = "/branding.svg";
+
 interface QRPreviewProps {
   data: string;
   size?: number;
+  isPremium?: boolean;
   fgColor?: string;
   bgColor?: string;
   logoUrl?: string;
@@ -19,6 +22,7 @@ interface QRPreviewProps {
 export function QRPreview({
   data,
   size = 300,
+  isPremium = false,
   fgColor = "#000000",
   bgColor = "#ffffff",
   logoUrl,
@@ -45,6 +49,9 @@ export function QRPreview({
     };
   }, []);
 
+  // Determine which image to embed in the QR center
+  const centerImage = isPremium ? logoUrl || undefined : FREE_BRANDING_IMAGE;
+
   // Create or update the QR code instance
   useEffect(() => {
     if (!QRCodeStylingClass || !containerRef.current) return;
@@ -68,9 +75,9 @@ export function QRPreview({
       },
       imageOptions: {
         crossOrigin: "anonymous",
-        margin: 10,
+        margin: 6,
       },
-      image: logoUrl || undefined,
+      image: centerImage,
     };
 
     if (qrRef.current) {
@@ -85,9 +92,9 @@ export function QRPreview({
     QRCodeStylingClass,
     data,
     size,
+    centerImage,
     fgColor,
     bgColor,
-    logoUrl,
     dotStyle,
     cornerSquareStyle,
     cornerDotStyle,

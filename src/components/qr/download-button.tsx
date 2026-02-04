@@ -88,7 +88,8 @@ export function DownloadButton({ qrData, disabled }: DownloadButtonProps) {
         data: qrData,
         dotsOptions: { type: "square", color: "#000000" },
         backgroundOptions: { color: "#ffffff" },
-        imageOptions: { crossOrigin: "anonymous", margin: 10 },
+        imageOptions: { crossOrigin: "anonymous", margin: 6 },
+        image: "/branding.svg",
       });
       qrInstanceRef.current = qrCode;
 
@@ -138,7 +139,7 @@ export function DownloadButton({ qrData, disabled }: DownloadButtonProps) {
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText(
-        "Made with QuickQR",
+        "https://quickqrcode.app",
         FREE_DOWNLOAD_SIZE / 2,
         FREE_DOWNLOAD_SIZE + watermarkHeight / 2
       );

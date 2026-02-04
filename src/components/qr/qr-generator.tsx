@@ -191,6 +191,7 @@ export function QRGenerator({ defaultCategory, defaultType }: QRGeneratorProps) 
       <div className="lg:sticky lg:top-24 flex flex-col gap-0 self-start min-w-0">
         <QRPreview
           data={qrString}
+          isPremium={false}
           fgColor={customization.fgColor}
           bgColor={customization.bgColor}
           logoUrl={customization.logoUrl ?? undefined}
