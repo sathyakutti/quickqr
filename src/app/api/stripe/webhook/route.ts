@@ -1,8 +1,10 @@
 export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
-import Stripe from "stripe";
-import { getStripe } from "@/lib/payments/stripe";
+import {
+  verifyStripeWebhookSignature,
+  retrieveStripeSubscription,
+} from "@/lib/payments/stripe";
 import {
   setPremiumCookie,
   clearPremiumCookie,
@@ -10,9 +12,10 @@ import {
 
 /**
  * Extract current_period_end from a subscription.
- * In Stripe API 2026+, this lives on SubscriptionItem, not Subscription.
  */
-function getSubscriptionPeriodEnd(subscription: Stripe.Subscription): number {
+function getSubscriptionPeriodEnd(subscription: {
+  items?: { data: Array<{ current_period_end?: number }> };
+}): number {
   const firstItem = subscription.items?.data?.[0];
   if (firstItem?.current_period_end) {
     return firstItem.current_period_end;
@@ -40,32 +43,25 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  let event: Stripe.Event;
+  let event;
   try {
-    // Use constructEventAsync with SubtleCryptoProvider for Edge runtime
-    event = await getStripe().webhooks.constructEventAsync(
-      body,
-      signature,
-      webhookSecret,
-      undefined,
-      Stripe.createSubtleCryptoProvider()
-    );
+    event = await verifyStripeWebhookSignature(body, signature, webhookSecret);
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid signature";
     return NextResponse.json({ error: message }, { status: 400 });
   }
 
+  const obj = event.data.object;
+
   switch (event.type) {
     case "checkout.session.completed": {
-      const session = event.data.object as Stripe.Checkout.Session;
-      if (session.subscription && session.customer) {
-        const subscription = await getStripe().subscriptions.retrieve(
-          session.subscription as string,
-          { expand: ["items.data"] }
+      if (obj.subscription && obj.customer) {
+        const subscription = await retrieveStripeSubscription(
+          obj.subscription as string
         );
         await setPremiumCookie({
           provider: "stripe",
-          customerId: session.customer as string,
+          customerId: obj.customer as string,
           subscriptionId: subscription.id,
           status: "active",
           expiresAt: getSubscriptionPeriodEnd(subscription),
@@ -75,23 +71,22 @@ export async function POST(request: NextRequest) {
     }
 
     case "customer.subscription.updated": {
-      const subscription = event.data.object as Stripe.Subscription;
-      const status = subscription.status;
-      const expiresAt = getSubscriptionPeriodEnd(subscription);
+      const status = obj.status;
+      const expiresAt = getSubscriptionPeriodEnd(obj);
 
       if (status === "active") {
         await setPremiumCookie({
           provider: "stripe",
-          customerId: subscription.customer as string,
-          subscriptionId: subscription.id,
+          customerId: obj.customer as string,
+          subscriptionId: obj.id,
           status: "active",
           expiresAt,
         });
       } else if (status === "past_due") {
         await setPremiumCookie({
           provider: "stripe",
-          customerId: subscription.customer as string,
-          subscriptionId: subscription.id,
+          customerId: obj.customer as string,
+          subscriptionId: obj.id,
           status: "past_due",
           expiresAt,
         });

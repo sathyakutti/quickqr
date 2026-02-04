@@ -1,7 +1,7 @@
 export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getStripe } from "@/lib/payments/stripe";
+import { createStripeBillingPortalSession } from "@/lib/payments/stripe";
 import { getPremiumStatus } from "@/lib/payments/premium";
 import { SITE_URL } from "@/lib/constants";
 
@@ -16,10 +16,10 @@ export async function POST(_request: NextRequest) {
       );
     }
 
-    const session = await getStripe().billingPortal.sessions.create({
-      customer: premium.customerId,
-      return_url: `${SITE_URL}/pricing`,
-    });
+    const session = await createStripeBillingPortalSession(
+      premium.customerId,
+      `${SITE_URL}/pricing`
+    );
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

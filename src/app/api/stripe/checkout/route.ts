@@ -1,7 +1,10 @@
 export const runtime = "edge";
 
 import { NextRequest, NextResponse } from "next/server";
-import { getStripe, getStripePriceId } from "@/lib/payments/stripe";
+import {
+  createStripeCheckoutSession,
+  getStripePriceId,
+} from "@/lib/payments/stripe";
 import { SITE_URL } from "@/lib/constants";
 
 export async function POST(request: NextRequest) {
@@ -18,18 +21,11 @@ export async function POST(request: NextRequest) {
 
     const priceId = getStripePriceId(interval);
 
-    const session = await getStripe().checkout.sessions.create({
-      mode: "subscription",
-      payment_method_types: ["card"],
-      line_items: [
-        {
-          price: priceId,
-          quantity: 1,
-        },
-      ],
-      success_url: `${SITE_URL}/?payment=success`,
-      cancel_url: `${SITE_URL}/pricing?payment=cancelled`,
-    });
+    const session = await createStripeCheckoutSession(
+      priceId,
+      `${SITE_URL}/?payment=success`,
+      `${SITE_URL}/pricing?payment=cancelled`
+    );
 
     return NextResponse.json({ url: session.url });
   } catch (error) {

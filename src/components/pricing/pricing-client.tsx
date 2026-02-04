@@ -54,24 +54,34 @@ export function PricingClient({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ interval }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          toast.error(data?.error || `Checkout failed (${res.status}). Please try again.`);
+          return;
+        }
         const data = await res.json();
         if (data.url) {
           window.location.href = data.url;
           return;
         }
-        toast.error(data.error || "Failed to start checkout. Please try again.");
+        toast.error("Failed to start checkout. Please try again.");
       } else {
         const res = await fetch("/api/razorpay/order", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ interval }),
         });
+        if (!res.ok) {
+          const data = await res.json().catch(() => null);
+          toast.error(data?.error || `Checkout failed (${res.status}). Please try again.`);
+          return;
+        }
         const data = await res.json();
         if (data.subscriptionId && data.keyId) {
           openRazorpayCheckout(data.subscriptionId, data.keyId);
           return;
         }
-        toast.error(data.error || "Failed to start checkout. Please try again.");
+        toast.error("Failed to start checkout. Please try again.");
       }
     } catch {
       toast.error("Something went wrong. Please try again.");
