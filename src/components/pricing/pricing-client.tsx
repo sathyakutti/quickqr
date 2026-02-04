@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -58,6 +59,7 @@ export function PricingClient({
           window.location.href = data.url;
           return;
         }
+        toast.error(data.error || "Failed to start checkout. Please try again.");
       } else {
         const res = await fetch("/api/razorpay/order", {
           method: "POST",
@@ -69,9 +71,10 @@ export function PricingClient({
           openRazorpayCheckout(data.subscriptionId, data.keyId);
           return;
         }
+        toast.error(data.error || "Failed to start checkout. Please try again.");
       }
     } catch {
-      // Checkout failed — user can retry
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
