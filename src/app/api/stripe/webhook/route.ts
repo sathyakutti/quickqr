@@ -1,10 +1,12 @@
+export const runtime = "edge";
+
 import { NextRequest, NextResponse } from "next/server";
+import Stripe from "stripe";
 import { getStripe } from "@/lib/payments/stripe";
 import {
   setPremiumCookie,
   clearPremiumCookie,
 } from "@/lib/payments/premium";
-import type Stripe from "stripe";
 
 /**
  * Extract current_period_end from a subscription.
@@ -40,7 +42,14 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event;
   try {
-    event = getStripe().webhooks.constructEvent(body, signature, webhookSecret);
+    // Use constructEventAsync with SubtleCryptoProvider for Edge runtime
+    event = await getStripe().webhooks.constructEventAsync(
+      body,
+      signature,
+      webhookSecret,
+      undefined,
+      Stripe.createSubtleCryptoProvider()
+    );
   } catch (err) {
     const message = err instanceof Error ? err.message : "Invalid signature";
     return NextResponse.json({ error: message }, { status: 400 });

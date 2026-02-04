@@ -1,8 +1,11 @@
+/**
+ * Premium cookie management — Edge-compatible (Web Crypto API).
+ * Uses AES-256-GCM for encryption and PBKDF2 for key derivation.
+ */
+
 import { cookies } from "next/headers";
-import crypto from "crypto";
 
 const COOKIE_NAME = "quickqr_premium";
-const ALGORITHM = "aes-256-gcm";
 
 function getCookieSecret(): string {
   const secret = process.env.PREMIUM_COOKIE_SECRET;
@@ -22,47 +25,102 @@ export interface PremiumPayload {
   expiresAt: number; // Unix timestamp in seconds
 }
 
+function bytesToHex(bytes: Uint8Array): string {
+  return Array.from(bytes)
+    .map((b) => b.toString(16).padStart(2, "0"))
+    .join("");
+}
+
+function hexToBytes(hex: string): Uint8Array<ArrayBuffer> {
+  const buffer = new ArrayBuffer(hex.length / 2);
+  const bytes = new Uint8Array(buffer);
+  for (let i = 0; i < hex.length; i += 2) {
+    bytes[i / 2] = parseInt(hex.substring(i, i + 2), 16);
+  }
+  return bytes;
+}
+
+async function deriveKey(secret: string): Promise<CryptoKey> {
+  const encoder = new TextEncoder();
+  const keyMaterial = await crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    "PBKDF2",
+    false,
+    ["deriveKey"]
+  );
+  return crypto.subtle.deriveKey(
+    {
+      name: "PBKDF2",
+      salt: encoder.encode("quickqr-salt"),
+      iterations: 100000,
+      hash: "SHA-256",
+    },
+    keyMaterial,
+    { name: "AES-GCM", length: 256 },
+    false,
+    ["encrypt", "decrypt"]
+  );
+}
+
 /**
  * Encrypt premium payload into a cookie-safe string.
  */
-export function encryptPremiumPayload(payload: PremiumPayload): string {
+export async function encryptPremiumPayload(
+  payload: PremiumPayload
+): Promise<string> {
   const secret = getCookieSecret();
-  const key = crypto.scryptSync(secret, "quickqr-salt", 32);
-  const iv = crypto.randomBytes(12);
-  const cipher = crypto.createCipheriv(ALGORITHM, key, iv);
+  const key = await deriveKey(secret);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoder = new TextEncoder();
+  const data = encoder.encode(JSON.stringify(payload));
 
-  const json = JSON.stringify(payload);
-  let encrypted = cipher.update(json, "utf8", "hex");
-  encrypted += cipher.final("hex");
-  const authTag = cipher.getAuthTag().toString("hex");
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    data
+  );
 
-  // Format: iv:authTag:encrypted
-  return `${iv.toString("hex")}:${authTag}:${encrypted}`;
+  // Web Crypto AES-GCM appends 16-byte auth tag to ciphertext
+  const encryptedBytes = new Uint8Array(encrypted);
+  const ciphertext = encryptedBytes.slice(0, encryptedBytes.length - 16);
+  const authTag = encryptedBytes.slice(encryptedBytes.length - 16);
+
+  // Format: iv:authTag:ciphertext (all hex-encoded)
+  return `${bytesToHex(iv)}:${bytesToHex(authTag)}:${bytesToHex(ciphertext)}`;
 }
 
 /**
  * Decrypt premium cookie value back to a payload.
  * Returns null if decryption fails (tampered/expired/invalid).
  */
-export function decryptPremiumPayload(
+export async function decryptPremiumPayload(
   value: string
-): PremiumPayload | null {
+): Promise<PremiumPayload | null> {
   try {
     const secret = getCookieSecret();
-    const key = crypto.scryptSync(secret, "quickqr-salt", 32);
-    const [ivHex, authTagHex, encrypted] = value.split(":");
+    const key = await deriveKey(secret);
+    const [ivHex, authTagHex, encryptedHex] = value.split(":");
 
-    if (!ivHex || !authTagHex || !encrypted) return null;
+    if (!ivHex || !authTagHex || !encryptedHex) return null;
 
-    const iv = Buffer.from(ivHex, "hex");
-    const authTag = Buffer.from(authTagHex, "hex");
-    const decipher = crypto.createDecipheriv(ALGORITHM, key, iv);
-    decipher.setAuthTag(authTag);
+    const iv = hexToBytes(ivHex);
+    const authTag = hexToBytes(authTagHex);
+    const ciphertext = hexToBytes(encryptedHex);
 
-    let decrypted = decipher.update(encrypted, "hex", "utf8");
-    decrypted += decipher.final("utf8");
+    // Web Crypto expects ciphertext + authTag concatenated
+    const combined = new Uint8Array(ciphertext.length + authTag.length);
+    combined.set(ciphertext);
+    combined.set(authTag, ciphertext.length);
 
-    return JSON.parse(decrypted) as PremiumPayload;
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      key,
+      combined
+    );
+
+    const decoder = new TextDecoder();
+    return JSON.parse(decoder.decode(decrypted)) as PremiumPayload;
   } catch {
     return null;
   }
@@ -71,9 +129,11 @@ export function decryptPremiumPayload(
 /**
  * Set the premium cookie after successful payment.
  */
-export async function setPremiumCookie(payload: PremiumPayload): Promise<void> {
+export async function setPremiumCookie(
+  payload: PremiumPayload
+): Promise<void> {
   const cookieStore = await cookies();
-  const encrypted = encryptPremiumPayload(payload);
+  const encrypted = await encryptPremiumPayload(payload);
 
   cookieStore.set(COOKIE_NAME, encrypted, {
     httpOnly: true,
@@ -102,7 +162,7 @@ export async function getPremiumStatus(): Promise<PremiumPayload | null> {
 
   if (!cookie?.value) return null;
 
-  const payload = decryptPremiumPayload(cookie.value);
+  const payload = await decryptPremiumPayload(cookie.value);
   if (!payload) return null;
 
   // Check if subscription is still active

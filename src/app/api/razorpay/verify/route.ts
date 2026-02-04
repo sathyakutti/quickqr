@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 import { NextRequest, NextResponse } from "next/server";
 import { verifyRazorpaySignature } from "@/lib/payments/razorpay";
 import { setPremiumCookie } from "@/lib/payments/premium";
@@ -22,7 +24,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const isValid = verifyRazorpaySignature(
+    const isValid = await verifyRazorpaySignature(
       razorpay_subscription_id,
       razorpay_payment_id,
       razorpay_signature

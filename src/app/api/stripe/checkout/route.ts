@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 import { NextRequest, NextResponse } from "next/server";
 import { getStripe, getStripePriceId } from "@/lib/payments/stripe";
 import { SITE_URL } from "@/lib/constants";

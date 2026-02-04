@@ -1,3 +1,5 @@
+export const runtime = "edge";
+
 import { NextRequest, NextResponse } from "next/server";
 import { verifyRazorpayWebhookSignature } from "@/lib/payments/razorpay";
 import {
@@ -30,7 +32,8 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (!verifyRazorpayWebhookSignature(body, signature)) {
+  const isValid = await verifyRazorpayWebhookSignature(body, signature);
+  if (!isValid) {
     return NextResponse.json(
       { error: "Invalid webhook signature" },
       { status: 400 }

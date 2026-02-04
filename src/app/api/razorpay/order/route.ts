@@ -1,5 +1,10 @@
+export const runtime = "edge";
+
 import { NextRequest, NextResponse } from "next/server";
-import { getRazorpay, getRazorpayPlanId } from "@/lib/payments/razorpay";
+import {
+  createRazorpaySubscription,
+  getRazorpayPlanId,
+} from "@/lib/payments/razorpay";
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,11 +20,10 @@ export async function POST(request: NextRequest) {
 
     const planId = getRazorpayPlanId(interval);
 
-    const subscription = await getRazorpay().subscriptions.create({
-      plan_id: planId,
-      total_count: interval === "monthly" ? 12 : 1,
-      customer_notify: 1,
-    });
+    const subscription = await createRazorpaySubscription(
+      planId,
+      interval === "monthly" ? 12 : 1
+    );
 
     return NextResponse.json({
       subscriptionId: subscription.id,
