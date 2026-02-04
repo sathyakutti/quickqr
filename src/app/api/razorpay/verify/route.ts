@@ -1,5 +1,3 @@
-export const runtime = "edge";
-
 import { NextRequest, NextResponse } from "next/server";
 import { verifyRazorpaySignature } from "@/lib/payments/razorpay";
 import { setPremiumCookie } from "@/lib/payments/premium";
