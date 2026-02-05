@@ -38,12 +38,28 @@ export function Footer() {
             );
           })}
 
-          {/* Legal column */}
+          {/* Company column */}
           <div>
             <h3 className="mb-3 text-sm font-semibold text-foreground">
-              Legal
+              Company
             </h3>
             <ul className="space-y-2" role="list">
+              <li>
+                <Link
+                  href="/pricing"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm"
+                >
+                  Pricing
+                </Link>
+              </li>
+              <li>
+                <Link
+                  href="/support"
+                  className="text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm"
+                >
+                  Support
+                </Link>
+              </li>
               <li>
                 <Link
                   href="/legal/privacy"

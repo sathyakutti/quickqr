@@ -160,6 +160,19 @@ export function Header() {
           >
             Pricing
           </Link>
+
+          {/* Support Link */}
+          <Link
+            href="/support"
+            className={cn(
+              "inline-flex items-center rounded-md px-3 py-2 text-sm font-medium",
+              "text-muted-foreground hover:text-foreground hover:bg-accent",
+              "outline-none focus-visible:ring-2 focus-visible:ring-ring",
+              "transition-colors"
+            )}
+          >
+            Support
+          </Link>
         </nav>
 
         {/* Right side */}

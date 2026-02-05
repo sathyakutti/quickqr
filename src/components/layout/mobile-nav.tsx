@@ -220,6 +220,22 @@ export function MobileNav({ isOpen, onClose }: MobileNavProps) {
                 Pricing
               </Link>
             </li>
+
+            {/* Support link */}
+            <li>
+              <Link
+                href="/support"
+                onClick={handleClose}
+                className={cn(
+                  "flex w-full items-center rounded-md px-3 py-2.5 text-sm font-medium",
+                  "text-foreground hover:bg-accent hover:text-accent-foreground",
+                  "outline-none focus-visible:ring-2 focus-visible:ring-ring",
+                  "transition-colors"
+                )}
+              >
+                Support
+              </Link>
+            </li>
           </ul>
         </nav>
       </div>
