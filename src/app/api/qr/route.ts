@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { QR_TYPE_IDS } from "@/lib/qr/types";
 import { encodeQRData } from "@/lib/qr/formats";
 
-export const runtime = "edge";
-
 /**
  * POST /api/qr
  *

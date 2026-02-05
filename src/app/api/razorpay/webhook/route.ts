@@ -5,8 +5,6 @@ import {
   clearPremiumCookie,
 } from "@/lib/payments/premium";
 
-export const runtime = "edge";
-
 interface RazorpayWebhookPayload {
   event: string;
   payload: {

@@ -5,8 +5,6 @@ import {
 } from "@/lib/payments/stripe";
 import { SITE_URL } from "@/lib/constants";
 
-export const runtime = "edge";
-
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
