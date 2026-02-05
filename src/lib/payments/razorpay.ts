@@ -78,6 +78,62 @@ export function getRazorpayPlanId(interval: "monthly" | "yearly"): string {
   return planId;
 }
 
+/**
+ * Generic Razorpay API GET request.
+ */
+async function razorpayGet<T>(endpoint: string): Promise<T> {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) {
+    throw new Error("Razorpay credentials not configured");
+  }
+  const auth = btoa(`${keyId}:${keySecret}`);
+  const res = await fetch(`https://api.razorpay.com/v1${endpoint}`, {
+    headers: { Authorization: `Basic ${auth}` },
+  });
+  if (!res.ok) {
+    throw new Error(`Razorpay API error (${res.status})`);
+  }
+  return res.json() as Promise<T>;
+}
+
+interface RazorpaySubscription {
+  id: string;
+  status: string;
+  customer_id?: string;
+  current_end: number;
+}
+
+/**
+ * Find an active Razorpay subscription by customer email.
+ * Lists all subscriptions and checks associated customer emails.
+ */
+export async function findRazorpaySubscriptionByEmail(
+  email: string
+): Promise<RazorpaySubscription | null> {
+  const subs = await razorpayGet<{ items: RazorpaySubscription[] }>(
+    "/subscriptions?count=100"
+  );
+
+  for (const sub of subs.items) {
+    if (sub.status !== "active" && sub.status !== "authenticated") continue;
+    if (!sub.customer_id) continue;
+
+    try {
+      const customer = await razorpayGet<{ id: string; email?: string }>(
+        `/customers/${sub.customer_id}`
+      );
+      if (customer.email?.toLowerCase() === email.toLowerCase()) {
+        return sub;
+      }
+    } catch {
+      continue;
+    }
+  }
+
+  return null;
+}
+
 export async function verifyRazorpaySignature(
   orderId: string,
   paymentId: string,

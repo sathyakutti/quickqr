@@ -3,13 +3,14 @@ import {
   searchStripeCustomersByEmail,
   listActiveSubscriptions,
 } from "@/lib/payments/stripe";
+import { findRazorpaySubscriptionByEmail } from "@/lib/payments/razorpay";
 import { setPremiumCookie } from "@/lib/payments/premium";
 
 /**
  * POST /api/restore
  *
  * Restores premium status for returning users on a new browser/device.
- * Searches Stripe for an active subscription by email and sets the cookie.
+ * Searches both Stripe and Razorpay for an active subscription by email.
  */
 export async function POST(request: NextRequest) {
   try {
@@ -23,35 +24,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Search Stripe for customers with this email
-    const customers = await searchStripeCustomersByEmail(email.trim());
+    const trimmedEmail = email.trim();
 
-    if (!customers.data.length) {
-      return NextResponse.json(
-        { error: "No subscription found for this email" },
-        { status: 404 }
-      );
+    // 1. Try Stripe first
+    try {
+      const customers = await searchStripeCustomersByEmail(trimmedEmail);
+      for (const customer of customers.data) {
+        const subs = await listActiveSubscriptions(customer.id);
+        if (subs.data.length > 0) {
+          const sub = subs.data[0];
+          const expiresAt =
+            sub.items?.data?.[0]?.current_period_end ||
+            Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30;
+
+          await setPremiumCookie({
+            provider: "stripe",
+            customerId: customer.id,
+            subscriptionId: sub.id,
+            status: "active",
+            expiresAt,
+          });
+
+          return NextResponse.json({ success: true, provider: "stripe" });
+        }
+      }
+    } catch {
+      // Stripe search failed, continue to Razorpay
     }
 
-    // Check each customer for active subscriptions
-    for (const customer of customers.data) {
-      const subs = await listActiveSubscriptions(customer.id);
-      if (subs.data.length > 0) {
-        const sub = subs.data[0];
-        const expiresAt =
-          sub.items?.data?.[0]?.current_period_end ||
-          Math.floor(Date.now() / 1000) + 60 * 60 * 24 * 30;
-
+    // 2. Try Razorpay
+    try {
+      const razorpaySub = await findRazorpaySubscriptionByEmail(trimmedEmail);
+      if (razorpaySub) {
         await setPremiumCookie({
-          provider: "stripe",
-          customerId: customer.id,
-          subscriptionId: sub.id,
+          provider: "razorpay",
+          customerId: razorpaySub.customer_id || razorpaySub.id,
+          subscriptionId: razorpaySub.id,
           status: "active",
-          expiresAt,
+          expiresAt: razorpaySub.current_end,
         });
 
-        return NextResponse.json({ success: true, provider: "stripe" });
+        return NextResponse.json({ success: true, provider: "razorpay" });
       }
+    } catch {
+      // Razorpay search failed
     }
 
     return NextResponse.json(
