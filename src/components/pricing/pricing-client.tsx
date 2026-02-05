@@ -5,6 +5,14 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Check, CreditCard, Smartphone, RotateCcw } from "lucide-react";
 import { PRICING, SITE_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -29,6 +37,10 @@ export function PricingClient({
   const [restoreOtp, setRestoreOtp] = useState("");
   const [restoreStep, setRestoreStep] = useState<"email" | "otp">("email");
   const [restoring, setRestoring] = useState(false);
+
+  // UPI email dialog state
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [checkoutEmail, setCheckoutEmail] = useState("");
 
   // Check current premium status
   useEffect(() => {
@@ -113,49 +125,74 @@ export function PricingClient({
       : Math.round((PRICING.monthly.usd * 12 - PRICING.yearly.usd) * 100) / 100;
 
   const handleCheckout = useCallback(async () => {
+    if (paymentMethod === "upi") {
+      // Open email dialog first for UPI payments
+      setEmailDialogOpen(true);
+      return;
+    }
+
     setLoading(true);
     try {
-      if (paymentMethod === "card") {
-        const res = await fetch("/api/stripe/checkout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ interval }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => null);
-          toast.error(data?.error || `Checkout failed (${res.status}). Please try again.`);
-          return;
-        }
-        const data = await res.json();
-        if (data.url) {
-          window.location.href = data.url;
-          return;
-        }
-        toast.error("Failed to start checkout. Please try again.");
-      } else {
-        const res = await fetch("/api/razorpay/order", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ interval }),
-        });
-        if (!res.ok) {
-          const data = await res.json().catch(() => null);
-          toast.error(data?.error || `Checkout failed (${res.status}). Please try again.`);
-          return;
-        }
-        const data = await res.json();
-        if (data.subscriptionId && data.keyId) {
-          openRazorpayCheckout(data.subscriptionId, data.keyId);
-          return;
-        }
-        toast.error("Failed to start checkout. Please try again.");
+      const res = await fetch("/api/stripe/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interval }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error || `Checkout failed (${res.status}). Please try again.`);
+        return;
       }
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+        return;
+      }
+      toast.error("Failed to start checkout. Please try again.");
     } catch {
       toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }
   }, [paymentMethod, interval]);
+
+  const handleUpiCheckout = useCallback(async () => {
+    const email = checkoutEmail.trim();
+    if (!email) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error("Please enter a valid email address.");
+      return;
+    }
+
+    setLoading(true);
+    setEmailDialogOpen(false);
+
+    try {
+      const res = await fetch("/api/razorpay/order", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ interval, email }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => null);
+        toast.error(data?.error || `Checkout failed (${res.status}). Please try again.`);
+        return;
+      }
+      const data = await res.json();
+      if (data.subscriptionId && data.keyId) {
+        openRazorpayCheckout(data.subscriptionId, data.keyId, email, interval);
+        return;
+      }
+      toast.error("Failed to start checkout. Please try again.");
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  }, [checkoutEmail, interval]);
 
   return (
     <div className="mt-12 space-y-8">
@@ -388,6 +425,33 @@ export function PricingClient({
           )}
         </div>
       )}
+
+      {/* UPI email collection dialog */}
+      <Dialog open={emailDialogOpen} onOpenChange={setEmailDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Enter your email</DialogTitle>
+            <DialogDescription>
+              We&apos;ll send your payment confirmation and subscription details to this email.
+              You&apos;ll also need it to restore premium on other devices.
+            </DialogDescription>
+          </DialogHeader>
+          <input
+            type="email"
+            placeholder="your@email.com"
+            value={checkoutEmail}
+            onChange={(e) => setCheckoutEmail(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && handleUpiCheckout()}
+            className="w-full rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            autoFocus
+          />
+          <DialogFooter>
+            <Button onClick={handleUpiCheckout} disabled={loading}>
+              {loading ? "Processing..." : "Continue to Payment"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -396,7 +460,12 @@ export function PricingClient({
  * Open Razorpay checkout modal.
  * Razorpay.js is loaded dynamically on demand.
  */
-function openRazorpayCheckout(subscriptionId: string, keyId: string) {
+function openRazorpayCheckout(
+  subscriptionId: string,
+  keyId: string,
+  email: string,
+  interval: BillingInterval
+) {
   const script = document.createElement("script");
   script.src = "https://checkout.razorpay.com/v1/checkout.js";
   script.onload = () => {
@@ -405,6 +474,9 @@ function openRazorpayCheckout(subscriptionId: string, keyId: string) {
       subscription_id: subscriptionId,
       name: SITE_NAME,
       description: "Premium Subscription",
+      prefill: {
+        email,
+      },
       handler: async (response: {
         razorpay_payment_id: string;
         razorpay_subscription_id: string;
@@ -414,7 +486,7 @@ function openRazorpayCheckout(subscriptionId: string, keyId: string) {
           const res = await fetch("/api/razorpay/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(response),
+            body: JSON.stringify({ ...response, email, interval }),
           });
           if (res.ok) {
             window.location.href = "/?payment=success";

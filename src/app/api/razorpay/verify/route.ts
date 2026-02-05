@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyRazorpaySignature } from "@/lib/payments/razorpay";
 import { setPremiumCookie } from "@/lib/payments/premium";
+import { sendPaymentConfirmationEmail } from "@/lib/payments/email";
 
 export async function POST(request: NextRequest) {
   try {
@@ -9,6 +10,8 @@ export async function POST(request: NextRequest) {
       razorpay_payment_id,
       razorpay_subscription_id,
       razorpay_signature,
+      email,
+      interval,
     } = body;
 
     if (
@@ -46,7 +49,17 @@ export async function POST(request: NextRequest) {
       expiresAt,
     });
 
-    return NextResponse.json({ success: true });
+    // Send confirmation email (non-blocking — don't fail the response)
+    let emailSent = false;
+    if (email && interval) {
+      emailSent = await sendPaymentConfirmationEmail({
+        email: email.trim().toLowerCase(),
+        plan: interval,
+        provider: "razorpay",
+      });
+    }
+
+    return NextResponse.json({ success: true, emailSent });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Payment verification failed";

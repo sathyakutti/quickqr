@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
+  createRazorpayCustomer,
   createRazorpaySubscription,
   getRazorpayPlanId,
 } from "@/lib/payments/razorpay";
@@ -8,6 +9,7 @@ export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const interval = body.interval as "monthly" | "yearly";
+    const email = body.email as string | undefined;
 
     if (interval !== "monthly" && interval !== "yearly") {
       return NextResponse.json(
@@ -16,11 +18,22 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!email || typeof email !== "string") {
+      return NextResponse.json(
+        { error: "Email is required" },
+        { status: 400 }
+      );
+    }
+
     const planId = getRazorpayPlanId(interval);
+
+    // Create or retrieve customer, then link to subscription
+    const customer = await createRazorpayCustomer(email.trim().toLowerCase());
 
     const subscription = await createRazorpaySubscription(
       planId,
-      interval === "monthly" ? 12 : 1
+      interval === "monthly" ? 12 : 1,
+      customer.id
     );
 
     return NextResponse.json({

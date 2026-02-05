@@ -1,11 +1,21 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Check } from "lucide-react";
 
 /**
- * Handles post-payment activation and success/cancel toasts.
+ * Handles post-payment activation, success dialog, and cancel toasts.
  * Placed in the root layout so it works regardless of which page
  * the user lands on after payment.
  */
@@ -13,6 +23,7 @@ export function PaymentActivator() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const handledRef = useRef(false);
+  const [successDialogOpen, setSuccessDialogOpen] = useState(false);
 
   useEffect(() => {
     if (handledRef.current) return;
@@ -39,7 +50,7 @@ export function PaymentActivator() {
       })
         .then(async (res) => {
           if (res.ok) {
-            toast.success("Premium activated! Enjoy your subscription.");
+            setSuccessDialogOpen(true);
           } else {
             // Webhook will handle it eventually
             toast.success("Payment received! Premium will activate shortly.");
@@ -51,7 +62,7 @@ export function PaymentActivator() {
         .finally(cleanUrl);
     } else if (payment === "success") {
       // Razorpay (cookie already set by /api/razorpay/verify)
-      toast.success("Payment received! Premium is now active.");
+      setSuccessDialogOpen(true);
       cleanUrl();
     } else if (payment === "cancelled") {
       toast.error("Payment was cancelled. You have not been charged.");
@@ -59,5 +70,38 @@ export function PaymentActivator() {
     }
   }, [searchParams, router]);
 
-  return null;
+  return (
+    <Dialog open={successDialogOpen} onOpenChange={setSuccessDialogOpen}>
+      <DialogContent>
+        <DialogHeader>
+          <div className="mx-auto mb-2 flex size-12 items-center justify-center rounded-full bg-primary/10">
+            <Check className="size-6 text-primary" />
+          </div>
+          <DialogTitle className="text-center">Payment Successful!</DialogTitle>
+          <DialogDescription className="text-center">
+            Your QuickQR Premium subscription is now active.
+            A confirmation email has been sent to your inbox.
+          </DialogDescription>
+        </DialogHeader>
+        <div className="rounded-md bg-muted p-3 text-sm text-muted-foreground">
+          <p className="font-medium text-foreground">Restore on other devices:</p>
+          <p className="mt-1">
+            Visit the pricing page, scroll to &quot;Already subscribed?&quot;,
+            and enter the email you used to subscribe.
+          </p>
+        </div>
+        <DialogFooter>
+          <Button
+            className="w-full"
+            onClick={() => {
+              setSuccessDialogOpen(false);
+              window.location.href = "/#main-content";
+            }}
+          >
+            Start Creating QR Codes
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+  );
 }

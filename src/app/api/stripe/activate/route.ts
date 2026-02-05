@@ -4,6 +4,7 @@ import {
   retrieveStripeSubscription,
 } from "@/lib/payments/stripe";
 import { setPremiumCookie } from "@/lib/payments/premium";
+import { sendPaymentConfirmationEmail } from "@/lib/payments/email";
 
 /**
  * POST /api/stripe/activate
@@ -53,7 +54,24 @@ export async function POST(request: NextRequest) {
       expiresAt,
     });
 
-    return NextResponse.json({ success: true });
+    // Determine interval from the subscription's price ID
+    const priceId = subscription.items?.data?.[0]?.price?.id;
+    const monthlyPriceId = process.env.STRIPE_MONTHLY_PRICE_ID;
+    const interval: "monthly" | "yearly" =
+      priceId === monthlyPriceId ? "monthly" : "yearly";
+
+    // Send confirmation email (non-blocking)
+    let emailSent = false;
+    const customerEmail = session.customer_details?.email;
+    if (customerEmail) {
+      emailSent = await sendPaymentConfirmationEmail({
+        email: customerEmail,
+        plan: interval,
+        provider: "stripe",
+      });
+    }
+
+    return NextResponse.json({ success: true, emailSent });
   } catch (error) {
     const message =
       error instanceof Error ? error.message : "Activation failed";

@@ -120,6 +120,7 @@ export async function createStripeBillingPortalSession(
 
 interface StripeSubscriptionItem {
   current_period_end?: number;
+  price?: { id?: string };
 }
 
 interface StripeSubscription {
@@ -196,6 +197,7 @@ export async function retrieveCheckoutSession(
   subscription?: string;
   customer?: string;
   payment_status: string;
+  customer_details?: { email?: string };
 }> {
   return stripeRequest(
     `/checkout/sessions/${sessionId}`,

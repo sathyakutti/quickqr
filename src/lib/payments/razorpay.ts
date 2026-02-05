@@ -27,11 +27,11 @@ async function hmacSHA256(key: string, message: string): Promise<string> {
 }
 
 /**
- * Create a Razorpay subscription via the REST API.
+ * Create or retrieve a Razorpay customer by email.
+ * Uses fail_existing=0 to return existing customer if email matches.
  */
-export async function createRazorpaySubscription(
-  planId: string,
-  totalCount: number
+export async function createRazorpayCustomer(
+  email: string
 ): Promise<{ id: string }> {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
@@ -42,17 +42,60 @@ export async function createRazorpaySubscription(
   }
 
   const auth = btoa(`${keyId}:${keySecret}`);
+  const response = await fetch("https://api.razorpay.com/v1/customers", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${auth}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, fail_existing: 0 }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(
+      (error as { error?: { description?: string } }).error?.description ||
+        "Failed to create Razorpay customer"
+    );
+  }
+
+  return response.json() as Promise<{ id: string }>;
+}
+
+/**
+ * Create a Razorpay subscription via the REST API.
+ */
+export async function createRazorpaySubscription(
+  planId: string,
+  totalCount: number,
+  customerId?: string
+): Promise<{ id: string }> {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) {
+    throw new Error(
+      "RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET environment variables are required"
+    );
+  }
+
+  const auth = btoa(`${keyId}:${keySecret}`);
+
+  const payload: Record<string, unknown> = {
+    plan_id: planId,
+    total_count: totalCount,
+    customer_notify: 1,
+  };
+  if (customerId) {
+    payload.customer_id = customerId;
+  }
+
   const response = await fetch("https://api.razorpay.com/v1/subscriptions", {
     method: "POST",
     headers: {
       Authorization: `Basic ${auth}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({
-      plan_id: planId,
-      total_count: totalCount,
-      customer_notify: 1,
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
