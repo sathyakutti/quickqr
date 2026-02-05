@@ -47,16 +47,16 @@ export default function HomePage() {
     <>
       {/* Hero Section */}
       <section className="border-b border-border bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-1.5 text-sm text-muted-foreground">
+            <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-border bg-background px-4 py-1.5 text-sm text-muted-foreground">
               <QrCode className="size-4" aria-hidden="true" />
               <span>{totalTypes} QR code types across {QR_CATEGORIES.length} categories</span>
             </div>
-            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl">
               Free QR Code Generator
             </h1>
-            <p className="mt-4 text-lg text-muted-foreground sm:text-xl">
+            <p className="mt-2 text-base text-muted-foreground sm:text-lg">
               {SITE_DESCRIPTION}
             </p>
           </div>
@@ -64,7 +64,7 @@ export default function HomePage() {
       </section>
 
       {/* QR Generator Section */}
-      <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8" aria-label="QR code generator">
+      <section className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8" aria-label="QR code generator">
         <QRGenerator />
       </section>
 
