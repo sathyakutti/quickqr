@@ -35,11 +35,20 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
     siteName: SITE_NAME,
     type: "website",
+    images: [
+      {
+        url: "/logo.jpeg",
+        width: 1024,
+        height: 1024,
+        alt: `${SITE_NAME} — Free QR Code Generator`,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: `${SITE_NAME} — Free QR Code Generator`,
     description: SITE_DESCRIPTION,
+    images: ["/logo.jpeg"],
   },
 };
 

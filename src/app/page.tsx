@@ -1,5 +1,5 @@
 import { QrCode, Zap, Shield, CreditCard, Globe, Smartphone, Download } from "lucide-react";
-import { SITE_NAME, SITE_DESCRIPTION, FREE_DAILY_DOWNLOAD_LIMIT } from "@/lib/constants";
+import { SITE_NAME, SITE_DESCRIPTION, SITE_URL, FREE_DAILY_DOWNLOAD_LIMIT } from "@/lib/constants";
 import { QR_CATEGORIES } from "@/lib/qr/categories";
 import { QRGenerator } from "@/components/qr/qr-generator";
 import Link from "next/link";
@@ -174,7 +174,9 @@ export default function HomePage() {
             "@context": "https://schema.org",
             "@type": "WebApplication",
             name: SITE_NAME,
+            url: SITE_URL,
             description: SITE_DESCRIPTION,
+            image: `${SITE_URL}/logo.jpeg`,
             applicationCategory: "UtilityApplication",
             operatingSystem: "Any",
             offers: {
@@ -194,6 +196,19 @@ export default function HomePage() {
               "Calendar event QR codes",
               "Geo location QR codes",
             ],
+          }),
+        }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: SITE_NAME,
+            url: SITE_URL,
+            logo: `${SITE_URL}/logo.jpeg`,
+            sameAs: [],
           }),
         }}
       />
