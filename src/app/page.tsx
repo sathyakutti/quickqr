@@ -73,10 +73,10 @@ export default function HomePage() {
         className="border-t border-border bg-muted/30"
         aria-labelledby="features-heading"
       >
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
           <h2
             id="features-heading"
-            className="mb-10 text-center text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
+            className="mb-8 text-center text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
           >
             Why {SITE_NAME}?
           </h2>
@@ -102,53 +102,9 @@ export default function HomePage() {
         </div>
       </section>
 
-      {/* Category Overview Section */}
-      <section
-        className="border-t border-border"
-        aria-labelledby="types-heading"
-      >
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-          <h2
-            id="types-heading"
-            className="mb-10 text-center text-2xl font-bold tracking-tight text-foreground sm:text-3xl"
-          >
-            {totalTypes} QR Code Types
-          </h2>
-          <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {QR_CATEGORIES.map((category) => {
-              const CategoryIcon = category.icon;
-              return (
-                <div key={category.id}>
-                  <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold uppercase tracking-wider text-muted-foreground">
-                    <CategoryIcon className="size-4" aria-hidden="true" />
-                    {category.label}
-                  </h3>
-                  <ul className="space-y-1.5">
-                    {category.types.map((type) => {
-                      const TypeIcon = type.icon;
-                      return (
-                        <li key={type.id}>
-                          <Link
-                            href={`/${type.id}`}
-                            className="group flex items-center gap-2 rounded-md px-2 py-1.5 text-sm text-foreground transition-colors hover:bg-accent hover:text-accent-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:rounded-sm"
-                          >
-                            <TypeIcon className="size-4 text-muted-foreground group-hover:text-accent-foreground" aria-hidden="true" />
-                            <span>{type.label}</span>
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </section>
-
       {/* CTA Section */}
       <section className="border-t border-border bg-muted/30">
-        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-12 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-2xl font-bold tracking-tight text-foreground sm:text-3xl">
               Need more from your QR codes?

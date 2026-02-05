@@ -174,8 +174,8 @@ export function QRGenerator({ defaultCategory, defaultType, isPremium: initialPr
   );
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-8 overflow-hidden">
-      <div className="flex flex-col gap-6 min-w-0">
+    <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_340px] gap-6 overflow-hidden">
+      <div className="flex flex-col gap-4 min-w-0">
         <CategoryTabs
           selectedCategory={selectedCategory}
           onCategoryChange={handleCategoryChange}
