@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { verifyRazorpayWebhookSignature } from "@/lib/payments/razorpay";
+import {
+  verifyRazorpayWebhookSignature,
+  getRazorpayCustomerEmail,
+} from "@/lib/payments/razorpay";
 import {
   setPremiumCookie,
   clearPremiumCookie,
 } from "@/lib/payments/premium";
+import {
+  sendPaymentFailedEmail,
+  sendSubscriptionCancelledEmail,
+  sendSubscriptionHaltedEmail,
+} from "@/lib/payments/email";
 
 interface RazorpayWebhookPayload {
   event: string;
@@ -12,6 +20,7 @@ interface RazorpayWebhookPayload {
       entity: {
         id: string;
         customer_id: string;
+        customer_email?: string;
         status: string;
         current_end: number;
       };
@@ -58,9 +67,23 @@ export async function POST(request: NextRequest) {
       break;
     }
 
-    case "subscription.halted":
+    case "subscription.halted": {
+      await clearPremiumCookie();
+      const haltedEmail = subscription.customer_email ||
+        await getRazorpayCustomerEmail(subscription.customer_id);
+      if (haltedEmail) {
+        await sendSubscriptionHaltedEmail(haltedEmail);
+      }
+      break;
+    }
+
     case "subscription.cancelled": {
       await clearPremiumCookie();
+      const cancelledEmail = subscription.customer_email ||
+        await getRazorpayCustomerEmail(subscription.customer_id);
+      if (cancelledEmail) {
+        await sendSubscriptionCancelledEmail(cancelledEmail);
+      }
       break;
     }
 
@@ -72,6 +95,11 @@ export async function POST(request: NextRequest) {
         status: "past_due",
         expiresAt: subscription.current_end,
       });
+      const pendingEmail = subscription.customer_email ||
+        await getRazorpayCustomerEmail(subscription.customer_id);
+      if (pendingEmail) {
+        await sendPaymentFailedEmail(pendingEmail);
+      }
       break;
     }
   }

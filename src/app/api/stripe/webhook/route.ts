@@ -2,11 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   verifyStripeWebhookSignature,
   retrieveStripeSubscription,
+  getStripeCustomerEmail,
 } from "@/lib/payments/stripe";
 import {
   setPremiumCookie,
   clearPremiumCookie,
 } from "@/lib/payments/premium";
+import {
+  sendPaymentFailedEmail,
+  sendSubscriptionCancelledEmail,
+} from "@/lib/payments/email";
 
 /**
  * Extract current_period_end from a subscription.
@@ -88,12 +93,22 @@ export async function POST(request: NextRequest) {
           status: "past_due",
           expiresAt,
         });
+        // Notify user of payment failure
+        const email = await getStripeCustomerEmail(obj.customer as string);
+        if (email) {
+          await sendPaymentFailedEmail(email);
+        }
       }
       break;
     }
 
     case "customer.subscription.deleted": {
       await clearPremiumCookie();
+      // Notify user of cancellation
+      const email = await getStripeCustomerEmail(obj.customer as string);
+      if (email) {
+        await sendSubscriptionCancelledEmail(email);
+      }
       break;
     }
   }

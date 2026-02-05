@@ -234,6 +234,24 @@ export async function listActiveSubscriptions(
   );
 }
 
+/**
+ * Retrieve a Stripe customer's email by customer ID.
+ */
+export async function getStripeCustomerEmail(
+  customerId: string
+): Promise<string | null> {
+  try {
+    const customer = await stripeRequest<{ email?: string }>(
+      `/customers/${customerId}`,
+      undefined,
+      "GET"
+    );
+    return customer.email || null;
+  } catch {
+    return null;
+  }
+}
+
 // Stripe webhook event types used in our webhook handler
 export interface StripeWebhookEvent {
   type: string;

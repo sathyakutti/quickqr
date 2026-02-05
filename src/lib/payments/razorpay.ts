@@ -122,6 +122,24 @@ export function getRazorpayPlanId(interval: "monthly" | "yearly"): string {
 }
 
 /**
+ * Retrieve a Razorpay customer's email by customer ID.
+ * Returns null if customer not found or has no email.
+ */
+export async function getRazorpayCustomerEmail(
+  customerId: string | undefined
+): Promise<string | null> {
+  if (!customerId) return null;
+  try {
+    const customer = await razorpayGet<{ email?: string }>(
+      `/customers/${customerId}`
+    );
+    return customer.email || null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Generic Razorpay API GET request.
  */
 async function razorpayGet<T>(endpoint: string): Promise<T> {
