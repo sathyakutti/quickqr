@@ -185,3 +185,105 @@ export async function isPremium(): Promise<boolean> {
   const status = await getPremiumStatus();
   return status !== null;
 }
+
+// ---------------------------------------------------------------------------
+// OTP token management (for restore flow verification)
+// ---------------------------------------------------------------------------
+
+const OTP_COOKIE_NAME = "quickqr_otp";
+
+export interface OtpPayload {
+  email: string;
+  otp: string;
+  expiresAt: number; // Unix timestamp in seconds
+}
+
+/**
+ * Encrypt an OTP payload into a cookie-safe string.
+ * Reuses the same AES-256-GCM encryption as premium cookies.
+ */
+async function encryptOtpPayload(payload: OtpPayload): Promise<string> {
+  const secret = getCookieSecret();
+  const key = await deriveKey(secret);
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const encoder = new TextEncoder();
+  const data = encoder.encode(JSON.stringify(payload));
+
+  const encrypted = await crypto.subtle.encrypt(
+    { name: "AES-GCM", iv },
+    key,
+    data
+  );
+
+  const encryptedBytes = new Uint8Array(encrypted);
+  const ciphertext = encryptedBytes.slice(0, encryptedBytes.length - 16);
+  const authTag = encryptedBytes.slice(encryptedBytes.length - 16);
+
+  return `${bytesToHex(iv)}:${bytesToHex(authTag)}:${bytesToHex(ciphertext)}`;
+}
+
+/**
+ * Decrypt an OTP cookie value back to a payload.
+ */
+async function decryptOtpPayload(value: string): Promise<OtpPayload | null> {
+  try {
+    const secret = getCookieSecret();
+    const key = await deriveKey(secret);
+    const [ivHex, authTagHex, encryptedHex] = value.split(":");
+
+    if (!ivHex || !authTagHex || !encryptedHex) return null;
+
+    const iv = hexToBytes(ivHex);
+    const authTag = hexToBytes(authTagHex);
+    const ciphertext = hexToBytes(encryptedHex);
+
+    const combined = new Uint8Array(ciphertext.length + authTag.length);
+    combined.set(ciphertext);
+    combined.set(authTag, ciphertext.length);
+
+    const decrypted = await crypto.subtle.decrypt(
+      { name: "AES-GCM", iv },
+      key,
+      combined
+    );
+
+    const decoder = new TextDecoder();
+    return JSON.parse(decoder.decode(decrypted)) as OtpPayload;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Store an OTP token as an encrypted httpOnly cookie.
+ */
+export async function setOtpCookie(payload: OtpPayload): Promise<void> {
+  const cookieStore = await cookies();
+  const encrypted = await encryptOtpPayload(payload);
+
+  cookieStore.set(OTP_COOKIE_NAME, encrypted, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 10, // 10 minutes
+  });
+}
+
+/**
+ * Read and decrypt the OTP cookie.
+ */
+export async function getOtpToken(): Promise<OtpPayload | null> {
+  const cookieStore = await cookies();
+  const cookie = cookieStore.get(OTP_COOKIE_NAME);
+  if (!cookie?.value) return null;
+  return decryptOtpPayload(cookie.value);
+}
+
+/**
+ * Clear the OTP cookie after successful verification.
+ */
+export async function clearOtpCookie(): Promise<void> {
+  const cookieStore = await cookies();
+  cookieStore.delete(OTP_COOKIE_NAME);
+}

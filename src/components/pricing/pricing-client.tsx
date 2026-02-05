@@ -26,6 +26,8 @@ export function PricingClient({
   const [loading, setLoading] = useState(false);
   const [isPremium, setIsPremium] = useState(false);
   const [restoreEmail, setRestoreEmail] = useState("");
+  const [restoreOtp, setRestoreOtp] = useState("");
+  const [restoreStep, setRestoreStep] = useState<"email" | "otp">("email");
   const [restoring, setRestoring] = useState(false);
 
   // Check current premium status
@@ -38,22 +40,22 @@ export function PricingClient({
       .catch(() => {});
   }, []);
 
-  const handleRestore = useCallback(async () => {
+  const handleSendCode = useCallback(async () => {
     if (!restoreEmail.trim()) {
       toast.error("Please enter your email address.");
       return;
     }
     setRestoring(true);
     try {
-      const res = await fetch("/api/restore", {
+      const res = await fetch("/api/restore/request", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: restoreEmail.trim() }),
       });
       const data = await res.json();
       if (res.ok) {
-        toast.success("Premium restored! Refreshing...");
-        setTimeout(() => window.location.reload(), 1000);
+        toast.success("Verification code sent! Check your email.");
+        setRestoreStep("otp");
       } else {
         toast.error(data.error || "No active subscription found for this email.");
       }
@@ -63,6 +65,32 @@ export function PricingClient({
       setRestoring(false);
     }
   }, [restoreEmail]);
+
+  const handleVerifyOtp = useCallback(async () => {
+    if (!restoreOtp.trim()) {
+      toast.error("Please enter the verification code.");
+      return;
+    }
+    setRestoring(true);
+    try {
+      const res = await fetch("/api/restore/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: restoreEmail.trim(), otp: restoreOtp.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Premium restored! Refreshing...");
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        toast.error(data.error || "Verification failed. Please try again.");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setRestoring(false);
+    }
+  }, [restoreEmail, restoreOtp]);
 
   const price =
     paymentMethod === "upi"
@@ -300,26 +328,64 @@ export function PricingClient({
             Already subscribed?
           </div>
           <p className="mt-1 text-sm text-muted-foreground">
-            Enter the email you used to subscribe to restore your premium access on this device.
+            {restoreStep === "email"
+              ? "Enter the email you used to subscribe. We'll send a verification code."
+              : `Enter the 6-digit code sent to ${restoreEmail}`}
           </p>
-          <div className="mt-3 flex items-center gap-2 max-w-md mx-auto">
-            <input
-              type="email"
-              placeholder="your@email.com"
-              value={restoreEmail}
-              onChange={(e) => setRestoreEmail(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && handleRestore()}
-              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-            <Button
-              size="sm"
-              variant="outline"
-              onClick={handleRestore}
-              disabled={restoring}
-            >
-              {restoring ? "Restoring..." : "Restore"}
-            </Button>
-          </div>
+
+          {restoreStep === "email" ? (
+            <div className="mt-3 flex items-center gap-2 max-w-md mx-auto">
+              <input
+                type="email"
+                placeholder="your@email.com"
+                value={restoreEmail}
+                onChange={(e) => setRestoreEmail(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleSendCode()}
+                className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={handleSendCode}
+                disabled={restoring}
+              >
+                {restoring ? "Sending..." : "Send Code"}
+              </Button>
+            </div>
+          ) : (
+            <div className="mt-3 max-w-md mx-auto space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="000000"
+                  maxLength={6}
+                  value={restoreOtp}
+                  onChange={(e) => setRestoreOtp(e.target.value.replace(/\D/g, ""))}
+                  onKeyDown={(e) => e.key === "Enter" && handleVerifyOtp()}
+                  className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm text-center tracking-widest placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={handleVerifyOtp}
+                  disabled={restoring}
+                >
+                  {restoring ? "Verifying..." : "Verify"}
+                </Button>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setRestoreStep("email");
+                  setRestoreOtp("");
+                }}
+                className="text-xs text-muted-foreground underline hover:text-foreground"
+              >
+                Use a different email
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
