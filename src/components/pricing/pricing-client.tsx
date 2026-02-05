@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Check, CreditCard, Smartphone } from "lucide-react";
+import { Check, CreditCard, Smartphone, RotateCcw } from "lucide-react";
 import { PRICING, SITE_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 
@@ -24,6 +24,45 @@ export function PricingClient({
   const [interval, setInterval] = useState<BillingInterval>("yearly");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [loading, setLoading] = useState(false);
+  const [isPremium, setIsPremium] = useState(false);
+  const [restoreEmail, setRestoreEmail] = useState("");
+  const [restoring, setRestoring] = useState(false);
+
+  // Check current premium status
+  useEffect(() => {
+    fetch("/api/premium/status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.isPremium) setIsPremium(true);
+      })
+      .catch(() => {});
+  }, []);
+
+  const handleRestore = useCallback(async () => {
+    if (!restoreEmail.trim()) {
+      toast.error("Please enter your email address.");
+      return;
+    }
+    setRestoring(true);
+    try {
+      const res = await fetch("/api/restore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: restoreEmail.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Premium restored! Refreshing...");
+        setTimeout(() => window.location.reload(), 1000);
+      } else {
+        toast.error(data.error || "No active subscription found for this email.");
+      }
+    } catch {
+      toast.error("Something went wrong. Please try again.");
+    } finally {
+      setRestoring(false);
+    }
+  }, [restoreEmail]);
 
   const price =
     paymentMethod === "upi"
@@ -126,6 +165,21 @@ export function PricingClient({
           )}
         </button>
       </div>
+
+      {/* Active subscription banner */}
+      {isPremium && (
+        <div className="rounded-lg border border-primary bg-primary/5 p-4 text-center">
+          <p className="text-sm font-medium text-primary">
+            You have an active Premium subscription.
+          </p>
+          <a
+            href="/#main-content"
+            className="mt-1 inline-block text-sm text-muted-foreground underline hover:text-foreground"
+          >
+            Go create QR codes
+          </a>
+        </div>
+      )}
 
       {/* Pricing cards */}
       <div className="grid gap-8 md:grid-cols-2">
@@ -237,6 +291,37 @@ export function PricingClient({
           </CardContent>
         </Card>
       </div>
+
+      {/* Restore purchase section */}
+      {!isPremium && (
+        <div className="mt-8 rounded-lg border border-border p-6 text-center">
+          <div className="flex items-center justify-center gap-2 text-sm font-medium text-foreground">
+            <RotateCcw className="size-4" aria-hidden="true" />
+            Already subscribed?
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Enter the email you used to subscribe to restore your premium access on this device.
+          </p>
+          <div className="mt-3 flex items-center gap-2 max-w-md mx-auto">
+            <input
+              type="email"
+              placeholder="your@email.com"
+              value={restoreEmail}
+              onChange={(e) => setRestoreEmail(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleRestore()}
+              className="flex-1 rounded-md border border-border bg-background px-3 py-2 text-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={handleRestore}
+              disabled={restoring}
+            >
+              {restoring ? "Restoring..." : "Restore"}
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

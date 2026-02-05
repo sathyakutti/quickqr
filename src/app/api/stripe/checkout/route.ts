@@ -21,7 +21,7 @@ export async function POST(request: NextRequest) {
 
     const session = await createStripeCheckoutSession(
       priceId,
-      `${SITE_URL}/?payment=success`,
+      `${SITE_URL}/?payment=success&session_id={CHECKOUT_SESSION_ID}`,
       `${SITE_URL}/pricing?payment=cancelled`
     );
 

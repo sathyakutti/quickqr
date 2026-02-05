@@ -186,6 +186,52 @@ export async function verifyStripeWebhookSignature(
   return JSON.parse(body) as StripeWebhookEvent;
 }
 
+/**
+ * Retrieve a Stripe Checkout Session by ID.
+ */
+export async function retrieveCheckoutSession(
+  sessionId: string
+): Promise<{
+  id: string;
+  subscription?: string;
+  customer?: string;
+  payment_status: string;
+}> {
+  return stripeRequest(
+    `/checkout/sessions/${sessionId}`,
+    undefined,
+    "GET"
+  );
+}
+
+/**
+ * Search Stripe customers by email.
+ */
+export async function searchStripeCustomersByEmail(
+  email: string
+): Promise<{ data: Array<{ id: string; email: string }> }> {
+  return stripeRequest(
+    "/customers/search",
+    { query: `email:'${email}'` },
+    "GET"
+  );
+}
+
+/**
+ * List active subscriptions for a Stripe customer.
+ */
+export async function listActiveSubscriptions(
+  customerId: string
+): Promise<{
+  data: Array<StripeSubscription>;
+}> {
+  return stripeRequest(
+    "/subscriptions",
+    { customer: customerId, status: "active" },
+    "GET"
+  );
+}
+
 // Stripe webhook event types used in our webhook handler
 export interface StripeWebhookEvent {
   type: string;

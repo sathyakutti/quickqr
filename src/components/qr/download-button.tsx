@@ -10,6 +10,7 @@ import Link from "next/link";
 interface DownloadButtonProps {
   qrData: string;
   disabled?: boolean;
+  isPremium?: boolean;
 }
 
 interface DownloadTracker {
@@ -43,7 +44,7 @@ function incrementDownloadCount(): DownloadTracker {
   return tracker;
 }
 
-export function DownloadButton({ qrData, disabled }: DownloadButtonProps) {
+export function DownloadButton({ qrData, disabled, isPremium }: DownloadButtonProps) {
   const [tracker, setTracker] = useState<DownloadTracker>({
     date: getTodayString(),
     count: 0,
@@ -73,7 +74,7 @@ export function DownloadButton({ qrData, disabled }: DownloadButtonProps) {
   }, []);
 
   const remaining = Math.max(0, FREE_DAILY_DOWNLOAD_LIMIT - tracker.count);
-  const isLimitReached = remaining <= 0;
+  const isLimitReached = !isPremium && remaining <= 0;
 
   const handleDownload = useCallback(async () => {
     if (!QRCodeStylingClass || !qrData || isLimitReached || isDownloading) return;
@@ -81,7 +82,7 @@ export function DownloadButton({ qrData, disabled }: DownloadButtonProps) {
     setIsDownloading(true);
 
     try {
-      // Create a fresh QR code instance for download at the free size
+      // Create a fresh QR code instance for download
       const qrCode = new QRCodeStylingClass({
         width: FREE_DOWNLOAD_SIZE,
         height: FREE_DOWNLOAD_SIZE,
@@ -89,7 +90,7 @@ export function DownloadButton({ qrData, disabled }: DownloadButtonProps) {
         dotsOptions: { type: "square", color: "#000000" },
         backgroundOptions: { color: "#ffffff" },
         imageOptions: { crossOrigin: "anonymous", margin: 6 },
-        image: "/branding.svg",
+        ...(isPremium ? {} : { image: "/branding.svg" }),
       });
       qrInstanceRef.current = qrCode;
 
@@ -113,43 +114,46 @@ export function DownloadButton({ qrData, disabled }: DownloadButtonProps) {
         qrImage.src = qrImageUrl;
       });
 
-      // Create a canvas with extra space for watermark
-      const watermarkHeight = 28;
-      const canvas = document.createElement("canvas");
-      canvas.width = FREE_DOWNLOAD_SIZE;
-      canvas.height = FREE_DOWNLOAD_SIZE + watermarkHeight;
+      let finalBlob: Blob | null;
 
-      const ctx = canvas.getContext("2d");
-      if (!ctx) {
+      if (isPremium) {
+        // Premium: no watermark, use QR blob directly
+        finalBlob = blob;
         URL.revokeObjectURL(qrImageUrl);
-        setIsDownloading(false);
-        return;
+      } else {
+        // Free: add watermark text below QR code
+        const watermarkHeight = 28;
+        const canvas = document.createElement("canvas");
+        canvas.width = FREE_DOWNLOAD_SIZE;
+        canvas.height = FREE_DOWNLOAD_SIZE + watermarkHeight;
+
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          URL.revokeObjectURL(qrImageUrl);
+          setIsDownloading(false);
+          return;
+        }
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(qrImage, 0, 0, FREE_DOWNLOAD_SIZE, FREE_DOWNLOAD_SIZE);
+
+        ctx.fillStyle = "#9ca3af";
+        ctx.font = "12px sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(
+          "https://quickqrcode.app",
+          FREE_DOWNLOAD_SIZE / 2,
+          FREE_DOWNLOAD_SIZE + watermarkHeight / 2
+        );
+
+        finalBlob = await new Promise<Blob | null>((resolve) => {
+          canvas.toBlob((b) => resolve(b), "image/png");
+        });
+
+        URL.revokeObjectURL(qrImageUrl);
       }
-
-      // Fill background
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // Draw QR code
-      ctx.drawImage(qrImage, 0, 0, FREE_DOWNLOAD_SIZE, FREE_DOWNLOAD_SIZE);
-
-      // Draw watermark text
-      ctx.fillStyle = "#9ca3af";
-      ctx.font = "12px sans-serif";
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(
-        "https://quickqrcode.app",
-        FREE_DOWNLOAD_SIZE / 2,
-        FREE_DOWNLOAD_SIZE + watermarkHeight / 2
-      );
-
-      // Convert to blob and trigger download
-      const finalBlob = await new Promise<Blob | null>((resolve) => {
-        canvas.toBlob((b) => resolve(b), "image/png");
-      });
-
-      URL.revokeObjectURL(qrImageUrl);
 
       if (!finalBlob) {
         setIsDownloading(false);
@@ -201,15 +205,19 @@ export function DownloadButton({ qrData, disabled }: DownloadButtonProps) {
         aria-label={
           isDownloading
             ? "Downloading QR code"
-            : `Download QR code as PNG. ${remaining} of ${FREE_DAILY_DOWNLOAD_LIMIT} downloads remaining today`
+            : isPremium
+              ? "Download QR code as PNG"
+              : `Download QR code as PNG. ${remaining} of ${FREE_DAILY_DOWNLOAD_LIMIT} downloads remaining today`
         }
       >
         <Download className="size-4" aria-hidden="true" />
         <span>{isDownloading ? "Downloading..." : "Download PNG"}</span>
       </Button>
-      <p className="text-xs text-muted-foreground">
-        {remaining}/{FREE_DAILY_DOWNLOAD_LIMIT} downloads remaining today
-      </p>
+      {!isPremium && (
+        <p className="text-xs text-muted-foreground">
+          {remaining}/{FREE_DAILY_DOWNLOAD_LIMIT} downloads remaining today
+        </p>
+      )}
     </div>
   );
 }

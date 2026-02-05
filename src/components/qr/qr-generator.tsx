@@ -71,13 +71,14 @@ const FORM_COMPONENTS: Record<QRType, ComponentType<FormComponentProps>> = {
 interface QRGeneratorProps {
   defaultCategory?: QRCategory;
   defaultType?: QRType;
+  isPremium?: boolean;
 }
 
 // ---------------------------------------------------------------------------
 // QR Generator component
 // ---------------------------------------------------------------------------
 
-export function QRGenerator({ defaultCategory, defaultType }: QRGeneratorProps) {
+export function QRGenerator({ defaultCategory, defaultType, isPremium: initialPremium }: QRGeneratorProps) {
   const initialCategory = defaultCategory ?? QR_CATEGORIES[0].id;
   const initialType =
     defaultType ?? getCategoryConfig(initialCategory).types[0].id;
@@ -86,6 +87,17 @@ export function QRGenerator({ defaultCategory, defaultType }: QRGeneratorProps) 
     useState<QRCategory>(initialCategory);
   const [selectedType, setSelectedType] = useState<QRType>(initialType);
   const [formData, setFormData] = useState<Record<string, string | boolean>>({});
+  const [premium, setPremium] = useState(initialPremium ?? false);
+
+  // Fetch premium status from API (handles cookie-based auth)
+  useEffect(() => {
+    fetch("/api/premium/status")
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.isPremium) setPremium(true);
+      })
+      .catch(() => {});
+  }, []);
   const [qrString, setQrString] = useState("");
   const [customization, setCustomization] = useState<QRCustomization>({
     fgColor: "#000000",
@@ -184,14 +196,14 @@ export function QRGenerator({ defaultCategory, defaultType }: QRGeneratorProps) 
           />
         </div>
         <QRCustomizer
-          isPremium={false}
+          isPremium={premium}
           onChange={handleCustomizationChange}
         />
       </div>
       <div className="lg:sticky lg:top-24 flex flex-col gap-0 self-start min-w-0">
         <QRPreview
           data={qrString}
-          isPremium={false}
+          isPremium={premium}
           fgColor={customization.fgColor}
           bgColor={customization.bgColor}
           logoUrl={customization.logoUrl ?? undefined}
@@ -199,7 +211,7 @@ export function QRGenerator({ defaultCategory, defaultType }: QRGeneratorProps) 
           cornerSquareStyle={customization.cornerSquareStyle}
           cornerDotStyle={customization.cornerDotStyle}
         />
-        <DownloadButton qrData={qrString} />
+        <DownloadButton qrData={qrString} isPremium={premium} />
       </div>
     </div>
   );

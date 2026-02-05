@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { Suspense } from "react";
 import { Inter, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "next-themes";
 import { Toaster } from "@/components/ui/sonner";
 import { Header } from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 import { CookieConsent } from "@/components/ads/cookie-consent";
+import { PaymentActivator } from "@/components/payment-activator";
 import { SITE_NAME, SITE_DESCRIPTION, SITE_URL } from "@/lib/constants";
 import "./globals.css";
 
@@ -69,6 +71,9 @@ export default function RootLayout({
           </main>
           <Footer />
           <Toaster />
+          <Suspense>
+            <PaymentActivator />
+          </Suspense>
           <CookieConsent />
         </ThemeProvider>
         {process.env.NEXT_PUBLIC_ADSENSE_CLIENT_ID && (
