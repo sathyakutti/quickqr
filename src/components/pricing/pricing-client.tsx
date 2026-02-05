@@ -276,12 +276,20 @@ function openRazorpayCheckout(subscriptionId: string, keyId: string) {
         // The webhook will handle setting premium status.
         window.location.href = "/?payment=success";
       },
+      modal: {
+        ondismiss: () => {
+          toast.error("Payment was not completed. Please try again.");
+        },
+      },
       theme: {
         color: "#000000",
       },
     };
     // @ts-expect-error — Razorpay is loaded via script tag
     const rzp = new window.Razorpay(options);
+    rzp.on("payment.failed", (resp: { error?: { description?: string } }) => {
+      toast.error(resp.error?.description || "Payment failed. Please try again.");
+    });
     rzp.open();
   };
   document.body.appendChild(script);

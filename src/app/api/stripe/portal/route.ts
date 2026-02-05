@@ -3,6 +3,8 @@ import { createStripeBillingPortalSession } from "@/lib/payments/stripe";
 import { getPremiumStatus } from "@/lib/payments/premium";
 import { SITE_URL } from "@/lib/constants";
 
+export const runtime = "edge";
+
 export async function POST(_request: NextRequest) {
   try {
     const premium = await getPremiumStatus();

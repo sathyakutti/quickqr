@@ -8,6 +8,8 @@ import {
   clearPremiumCookie,
 } from "@/lib/payments/premium";
 
+export const runtime = "edge";
+
 /**
  * Extract current_period_end from a subscription.
  */
