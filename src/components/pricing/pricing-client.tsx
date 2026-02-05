@@ -259,16 +259,22 @@ function openRazorpayCheckout(subscriptionId: string, keyId: string) {
         razorpay_subscription_id: string;
         razorpay_signature: string;
       }) => {
-        // Verify on backend
-        const res = await fetch("/api/razorpay/verify", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(response),
-        });
-        const data = await res.json();
-        if (data.success) {
-          window.location.href = "/?payment=success";
+        try {
+          const res = await fetch("/api/razorpay/verify", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(response),
+          });
+          if (res.ok) {
+            window.location.href = "/?payment=success";
+            return;
+          }
+        } catch {
+          // Verification request failed, but payment was already made
         }
+        // Payment succeeded (money deducted) — redirect even if verify had issues.
+        // The webhook will handle setting premium status.
+        window.location.href = "/?payment=success";
       },
       theme: {
         color: "#000000",
